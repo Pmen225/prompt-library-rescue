@@ -1,0 +1,60 @@
+name: Booking request
+description: Request the £95 AI Prompt Library Rescue service
+title: "[Booking] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form only to check fit and availability. Do not paste prompts, passwords, API keys, personal data or confidential information into this public issue.
+  - type: dropdown
+    id: prompt_count
+    attributes:
+      label: Approximate prompt count
+      options:
+        - 1–10
+        - 11–25
+        - 26–40
+        - More than 40
+    validations:
+      required: true
+  - type: checkboxes
+    id: tools
+    attributes:
+      label: AI tools used
+      options:
+        - label: ChatGPT
+        - label: Claude
+        - label: Gemini
+        - label: Codex
+        - label: Other
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Three main tasks
+      description: Name the jobs only. Do not paste your prompts.
+      placeholder: "Example: customer email rewrites; research summaries; weekly reports"
+    validations:
+      required: true
+  - type: dropdown
+    id: format
+    attributes:
+      label: Preferred delivery format
+      options:
+        - Notion
+        - Markdown
+        - Unsure
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I will not post or send passwords, API keys, personal data or confidential client information.
+          required: true
+  - type: markdown
+    attributes:
+      value: |
+        Submitting this request does not create an order or payment obligation. Scope, availability and payment must be agreed before work begins.
