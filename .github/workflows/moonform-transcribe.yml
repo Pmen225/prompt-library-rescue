@@ -1,4 +1,4 @@
-# Purpose: temporarily transcribe and sample the exact public Moon validation video that was prospectively locked before reveal; the workflow is removed after the audit.
+# Purpose: temporarily transcribe and sample the exact public Moon validation video prospectively locked before reveal; the workflow is removed after the audit.
 name: moonform-exact-validation-transcription
 
 on:
@@ -37,18 +37,17 @@ jobs:
           from pathlib import Path
           import requests
 
-          source = "https://archive.ventilaar.net/videos/automatic/UCmFeOdJI3IXgTBDzqBLD8qg/eGUzz-Yaf-U/how-conan-o-brien-changed-late-night-forever.mp4"
-          dest = Path("out/conan_exact.mp4")
-          h = hashlib.sha256()
-          size = 0
-          with requests.get(source, stream=True, timeout=180, headers={"User-Agent":"MoonformOS-ExactValidation/1.0"}) as r:
+          source = "https://archive.ventilaar.net/videos/automatic/UCmFeOdJI3IXgTBDzqBLD8qg/eGUzz-Yaf-U/how-conan-o-brien-changed-late-night-forever.webm"
+          dest = Path("out/conan_exact.webm")
+          h = hashlib.sha256(); size = 0
+          with requests.get(source, stream=True, timeout=180, headers={"User-Agent":"MoonformOS-ExactValidation/1.1"}) as r:
               r.raise_for_status()
               with dest.open("wb") as f:
                   for chunk in r.iter_content(1024 * 1024):
                       if chunk:
                           f.write(chunk); h.update(chunk); size += len(chunk)
           Path("out/source_metadata.json").write_text(json.dumps({
-              "purpose":"Prove that the ASR and audiovisual audit used the exact prospectively locked Moon video, not the later podcast episode.",
+              "purpose":"Prove that the ASR and audiovisual audit used the exact prospectively locked Moon video.",
               "title":"How Conan O'Brien Changed Late Night Forever",
               "youtube_id":"eGUzz-Yaf-U",
               "published":"2024-09-06",
@@ -59,18 +58,16 @@ jobs:
           }, indent=2), encoding="utf-8")
           print(json.dumps({"bytes":size,"sha256":h.hexdigest()}))
           PY
-          ffprobe -v error -print_format json -show_format -show_streams out/conan_exact.mp4 > out/ffprobe.json
+          ffprobe -v error -print_format json -show_format -show_streams out/conan_exact.webm > out/ffprobe.json
 
       - name: Capture exact audiovisual evidence
         shell: bash
         run: |
           set -euo pipefail
-          ffmpeg -hide_banner -loglevel error -y -i out/conan_exact.mp4 -vn -ac 1 -ar 16000 out/conan_exact.wav
-          # One frame per minute plus a contact sheet preserves a compact visual audit trail.
-          ffmpeg -hide_banner -loglevel error -y -i out/conan_exact.mp4 -vf "fps=1/60,scale=480:-1" out/frames/minute_%02d.jpg
-          ffmpeg -hide_banner -loglevel error -y -i out/conan_exact.mp4 -vf "fps=1/60,scale=320:-1,tile=5x4" -frames:v 1 out/contact_sheet.jpg
-          # Scene and silence logs are reproducible timing evidence for edit/audio pacing.
-          ffmpeg -hide_banner -i out/conan_exact.mp4 -vf "select='gt(scene,0.30)',showinfo" -an -f null - 2> out/scene_detection.log || true
+          ffmpeg -hide_banner -loglevel error -y -i out/conan_exact.webm -vn -ac 1 -ar 16000 out/conan_exact.wav
+          ffmpeg -hide_banner -loglevel error -y -i out/conan_exact.webm -vf "fps=1/60,scale=480:-1" out/frames/minute_%02d.jpg
+          ffmpeg -hide_banner -loglevel error -y -i out/conan_exact.webm -vf "fps=1/60,scale=320:-1,tile=5x4" -frames:v 1 out/contact_sheet.jpg
+          ffmpeg -hide_banner -i out/conan_exact.webm -vf "select='gt(scene,0.30)',showinfo" -an -f null - 2> out/scene_detection.log || true
           ffmpeg -hide_banner -i out/conan_exact.wav -af "silencedetect=noise=-36dB:d=0.35" -f null - 2> out/silence_detection.log || true
 
       - name: Run two-checkpoint ASR audit
@@ -85,13 +82,12 @@ jobs:
           from pathlib import Path
           from faster_whisper import WhisperModel
 
-          OUT=Path("out")
-          AUDIO=OUT/"conan_exact.wav"
+          OUT=Path("out"); AUDIO=OUT/"conan_exact.wav"
           TARGET="How Conan O'Brien Changed Late Night Forever"
           PROMPT="Conan O'Brien, Jay Leno, NBC, The Tonight Show, Late Night, David Letterman, Team Coco, TBS, Hollywood."
 
           def run(model_name:str, words:bool):
-              model=WhisperModel(model_name, device="cpu", compute_type="int8", cpu_threads=4, num_workers=1)
+              model=WhisperModel(model_name,device="cpu",compute_type="int8",cpu_threads=4,num_workers=1)
               stream,info=model.transcribe(str(AUDIO),language="en",beam_size=5,best_of=5,temperature=0.0,condition_on_previous_text=True,vad_filter=True,vad_parameters={"min_silence_duration_ms":500},word_timestamps=words,initial_prompt=PROMPT)
               rows=[]
               for i,s in enumerate(stream):
@@ -102,13 +98,10 @@ jobs:
               meta={"model":model_name,"language":info.language,"language_probability":float(info.language_probability),"duration":float(info.duration),"duration_after_vad":float(info.duration_after_vad),"transcribed_utc":datetime.now(timezone.utc).isoformat()}
               del model; gc.collect(); return rows,meta
 
-          primary,pmeta=run("small.en",True)
-          audit,ameta=run("base.en",False)
-          ptext=" ".join(x["text"] for x in primary).strip()
-          atext=" ".join(x["text"] for x in audit).strip()
+          primary,pmeta=run("small.en",True); audit,ameta=run("base.en",False)
+          ptext=" ".join(x["text"] for x in primary).strip(); atext=" ".join(x["text"] for x in audit).strip()
           normal=lambda t:re.findall(r"[a-z0-9']+",t.lower())
-          pw,aw=normal(ptext),normal(atext)
-          matcher=SequenceMatcher(None,pw,aw,autojunk=False)
+          pw,aw=normal(ptext),normal(atext); matcher=SequenceMatcher(None,pw,aw,autojunk=False)
           payload={"purpose":"Timestamped primary transcript for the exact locked validation video.","target":TARGET,"metadata":pmeta,"segments":primary,"text":ptext}
           (OUT/"transcript_primary.json").write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding="utf-8")
           (OUT/"transcript_primary.txt").write_text(ptext+"\n",encoding="utf-8")
